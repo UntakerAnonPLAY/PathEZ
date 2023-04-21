@@ -19,6 +19,7 @@ exclude = [
     "src/ServerScriptService",
     ".vscode",
     "SimplePath.lua",
+    "build",
 ]
 
 [dependencies]

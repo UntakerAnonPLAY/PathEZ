@@ -44,8 +44,10 @@ local PathEZ = {}
 PathEZ.prototype = {}
 PathEZ.__index = PathEZ.prototype
 
-local Promise = require(game:GetService("ReplicatedStorage").Packages.promise)
-local Signal = require(game:GetService("ReplicatedStorage").Packages.signal)
+local Dependencies = script.Parent
+
+local Promise = require(Dependencies.promise)
+local Signal = require(Dependencies.signal)
 
 PathEZ.Error = Signal.new()
 
