@@ -1,0 +1,18 @@
+gitSourceBranch = "master"
+changelog = true
+classOrder = [
+    "PathEZ",
+    "PathEZPath"
+]
+
+[docusaurus]
+onBrokenLinks = "throw"
+onBrokenMarkdownLinks = "warn"
+
+
+[[footer.links]]
+title = "examples"
+
+[[footer.links.items]]
+label = "example"
+href = "https://example.com/"

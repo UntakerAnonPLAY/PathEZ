@@ -1,0 +1,26 @@
+[package]
+name = "untakeranonplay/pathez"
+description = "Package for pathfinding in real time"
+license = "MIT"
+authors = ["Untaker_AnonPLAY <anonplay9@gmail.com>"]
+version = "0.0.1"
+registry = "https://github.com/UpliftGames/wally-index"
+realm = "shared"
+
+exclude = [
+    "selene.toml",
+    "aftman.toml",
+    "moonwave.toml",
+    ".gitignore",
+    "TestPlace.project.json",
+    "TestPlace.rbxl",
+    "TestPlace.rbxl.lock",
+    "README.md",
+    "src/ServerScriptService",
+    ".vscode",
+    "SimplePath.lua",
+]
+
+[dependencies]
+promise = "evaera/promise@^4.0"
+signal = "sleitnick/signal@^1.5"

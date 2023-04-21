@@ -1,0 +1,11 @@
+# Project place file
+/*.rbxlx
+
+# lock files
+/*.rbxlx.lock
+/*.rbxl.lock
+/*.lock
+
+/Packages
+/SimplePath.lua
+/build
