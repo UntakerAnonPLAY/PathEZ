@@ -5,15 +5,31 @@
 
     "ReplicatedStorage": {
       "$className": "ReplicatedStorage",
-      "$path": "src/ReplicatedStorage",
       "Packages": {
-        "$path": "Packages"
+        "$path": "Packages",
+        "PathEZ": {
+          "$className": "Folder",
+          "PathEZ": {
+            "$path": "PathEZ"
+          }
+        }
       }
     },
 
     "ServerScriptService": {
       "$className": "ServerScriptService",
-      "$path": "src/ServerScriptService"
+      "Tests": {
+        "$path": "Tests/server"
+      }
+    },
+
+    "StarterPlayer": {
+      "$className": "StarterPlayer",
+      "StarterPlayerScripts": {
+        "Tests": {
+          "$path": "Tests/client"
+        }
+      }
     },
 
     "Workspace": {
@@ -41,24 +57,6 @@
             512
           ]
         }
-      }
-    },
-    "Lighting": {
-      "$properties": {
-        "Ambient": [
-          0,
-          0,
-          0
-        ],
-        "Brightness": 2,
-        "GlobalShadows": true,
-        "Outlines": false,
-        "Technology": "Voxel"
-      }
-    },
-    "SoundService": {
-      "$properties": {
-        "RespectFilteringEnabled": true
       }
     }
   }

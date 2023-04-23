@@ -2,5 +2,15 @@ gitSourceBranch = "master"
 changelog = true
 classOrder = [
     "PathEZ",
-    "PathEZPath"
+    "Error",
 ]
+
+apiCategories = [
+    "Constructor",
+    "Move Function",
+]
+
+[docusaurus]
+onBrokenLinks = "throw"
+onBrokenMarkdownLinks = "warn"
+favicon = "/favicon.png"

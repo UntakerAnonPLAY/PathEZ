@@ -3,7 +3,7 @@ name = "untakeranonplay/pathez"
 description = "Package for pathfinding in real time"
 license = "MIT"
 authors = ["Untaker_AnonPLAY <anonplay9@gmail.com>"]
-version = "0.0.1"
+version = "0.0.3"
 registry = "https://github.com/UpliftGames/wally-index"
 realm = "shared"
 
@@ -11,15 +11,17 @@ exclude = [
     "selene.toml",
     "aftman.toml",
     "moonwave.toml",
+    "wally.toml",
     ".gitignore",
-    "TestPlace.project.json",
-    "TestPlace.rbxl",
-    "TestPlace.rbxl.lock",
-    "README.md",
-    "src/ServerScriptService",
+    ".moonwave",
     ".vscode",
-    "SimplePath.lua",
     "build",
+    "Tests",
+    "SimplePath.lua",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE.md",
+    "TestPlace.project.json",
 ]
 
 [dependencies]
