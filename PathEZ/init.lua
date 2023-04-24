@@ -15,6 +15,14 @@ local Signal = require(Dependencies.signal)
 ]=]
 
 --[=[
+	@prop IsMoving boolean
+	@within PathEZ
+	@readonly
+	
+	Property of [PathEZPath], indicates whether Agent is moving or not.
+]=]
+
+--[=[
 	@interface ComputationSettings
 	@within PathEZ
 
@@ -37,8 +45,10 @@ export type ComputationSettings = {
 	@within PathEZ
 
 	.ignoreNoPathError boolean --ignores computation errors when agent is trying to follow a target
+	.visualizePaths boolean
 
-	- `ignoreNoPathError` default value is `true`.
+	- `ignoreNoPathError` default value is `false`.
+	- `visualizePaths` default value is `false`.
 
 	:::note
 
@@ -48,6 +58,7 @@ export type ComputationSettings = {
 ]=]
 export type MoveSettings = {
 	ignoreNoPathError: boolean,
+	visualizePath: boolean,
 }
 
 --[=[
@@ -81,13 +92,14 @@ local PathEZ = {}
 PathEZ.prototype = {}
 PathEZ.__index = PathEZ.prototype
 
-local DEFFAULT_COMPUTATION_SETTINGS: ComputationSettings = {
+local DEFFAULT_COMPUTATION_SETTINGS: ComputationSettings = table.freeze({
 	TimeBetweenCompute = 0.07,
-}
+})
 
-local DEFFAULT_MOVE_SETTINGS: MoveSettings = {
+local DEFFAULT_MOVE_SETTINGS: MoveSettings = table.freeze({
 	ignoreNoPathError = false,
-}
+	visualizePath = false,
+})
 
 --[=[
 	@prop Errored Signal
@@ -142,10 +154,43 @@ function PathEZ.new(agent: Model, agentParams, computationSettings: ComputationS
 	self.GeneratedPath = game:GetService("PathfindingService"):CreatePath(agentParams)
 	self.IsMoving = false
 
+	self.Events = {
+		PlaceReached = Signal.new(),
+	}
+
 	self._computationSettings = computationSettings or DEFFAULT_COMPUTATION_SETTINGS
 	self._followingPromise = {}
 
 	return self
+end
+
+--[=[
+	@within PathEZ
+	@tag Useful Function
+
+	Gets the nearest player from Postion out of provided players or uses `game:GetService("Players"):GetChildren()`.
+
+	:::info
+
+	Accepts predicate function to check on players as the third argument.
+
+	:::
+]=]
+function PathEZ.GetNearestPlayer(position: Vector3, players: { Players }?, predicate: ((Player) -> boolean)?): Player
+	local nearestPlayer: Player
+	local dist: number = math.huge
+
+	for _, player in (players or game:GetService("Players"):GetChildren()) do
+		if predicate and not predicate(player) then
+			continue
+		end
+
+		if player.Character and (player.Character.PrimaryPart.CFrame.Position - position).Magnitude < dist then
+			nearestPlayer, dist = player, (player.Character.PrimaryPart.CFrame.Position - position).Magnitude
+		end
+	end
+
+	return nearestPlayer
 end
 
 --[=[
@@ -190,10 +235,17 @@ function PathEZ.ComputeAndGetWaypoints(path: Path, startPoint: Vector3, finishPo
 	end)
 end
 
+--Used to visualize waypoints
+local visualWaypoint = Instance.new("Part")
+visualWaypoint.Size = Vector3.new(0.3, 0.3, 0.3)
+visualWaypoint.Anchored = true
+visualWaypoint.CanCollide = false
+visualWaypoint.Material = Enum.Material.Neon
+visualWaypoint.Shape = Enum.PartType.Ball
+
 --[=[
 	@within PathEZ
 	@tag Move Function
-	@return IsMoving
 
 	Move agent to a given place. Place will be automatically converted to `Vector3`.
 
@@ -211,7 +263,7 @@ end
 
 	:::
 ]=]
-function PathEZ.prototype:MoveTo(place: Vector3 | Model | BasePart, moveSettings: MoveSettings?): boolean
+function PathEZ.prototype:MoveTo(place: Vector3 | Model | BasePart, moveSettings: MoveSettings?): ()
 	assert(
 		typeof(place) == "Vector3" or place:IsA("BasePart") or place:IsA("Model"),
 		"Place must be a Vector3, Model or a BasePart"
@@ -219,12 +271,16 @@ function PathEZ.prototype:MoveTo(place: Vector3 | Model | BasePart, moveSettings
 
 	moveSettings = moveSettings or DEFFAULT_MOVE_SETTINGS
 
-	local point = if place:IsA("Model")
-		then place.PrimaryPart.Position
-		elseif place:IsA("BasePart") then place.Position
-		else place
+	local point = if typeof(place) == "Vector3"
+		then place
+		elseif place:IsA("Model") then place.PrimaryPart.CFrame.Position
+		else place.Position
 
-	local _, waypoints = PathEZ.ComputeAndGetWaypoints(self.GeneratedPath, self.Agent.PrimaryPart.Position, point)
+	local _, waypoints = PathEZ.ComputeAndGetWaypoints(
+		self.GeneratedPath,
+		self.Agent.PrimaryPart.CFrame.Position,
+		point
+	)
 		:catch(function(status, msg)
 			if moveSettings.ignoreNoPathError then
 				return
@@ -236,27 +292,40 @@ function PathEZ.prototype:MoveTo(place: Vector3 | Model | BasePart, moveSettings
 		:await()
 
 	if not waypoints then
-		return
+		return --No path was calculated, so we stop function
 	end
 
 	self.IsMoving = true
 
 	local humanoid: Humanoid = self.Agent:FindFirstChildOfClass("Humanoid")
-	for _, waypoint: PathWaypoint in waypoints do
+	for i, waypoint: PathWaypoint in waypoints do
+
+		--test
+		if i == 1 then
+			print(waypoint.Position)
+			print(self.Agent.PrimaryPart.CFrame.Position)
+			continue
+		end	
+		if moveSettings.visualizePath == true then
+			local visWay = visualWaypoint:Clone()
+			visWay.Position = waypoint.Position
+			visWay.Parent = game.Workspace
+		end
+		--test
+
 		if waypoint.Action.Value == Enum.PathWaypointAction.Jump then
 			humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
 		end
 		humanoid:MoveTo(waypoint.Position)
 	end
 
-	return self.IsMoving
+	self.Events.PlaceReached:Fire(self.Agent.PrimaryPart.CFrame.Position)
 end
 
 --[=[
 	@within PathEZ
 	@tag Move Function
 
-	@return IsMoving
 	Makes agent follow a target.
 
 	```lua
@@ -271,17 +340,20 @@ end
 
 	:::
 ]=]
-function PathEZ.prototype:Follow(target: Player | Model | BasePart, moveSettings: MoveSettings?): boolean
+function PathEZ.prototype:Follow(target: Player | Model | BasePart, moveSettings: MoveSettings?): ()
 	assert(
 		target:IsA("Player") or target:IsA("Model") or target:IsA("BasePart"),
 		"Target must be a Player or Model or a BasePart"
 	)
 
-	target = if target:IsA("Player") then target.Character or target.CharacterAdded:Wait() else target
+	self._followingPromise = Promise.new(function(_, _, onCancel)
+		target = if target:IsA("Player") then target.Character or target.CharacterAdded:Wait() else target
 
-	self._followingPromise = Promise.new(function(resolve, reject, onCancel)
 		while true do
 			self:MoveTo(target, moveSettings)
+			--test
+			--self.Agent.PrimaryPart.CFrame = CFrame.lookAt(self.Agent.PrimaryPart.CFrame.Position, target.PrimaryPart.CFrame.Position)
+			--test
 
 			task.wait(self._computationSettings.TimeBetweenCompute)
 			if onCancel() then
@@ -289,8 +361,6 @@ function PathEZ.prototype:Follow(target: Player | Model | BasePart, moveSettings
 			end
 		end
 	end)
-
-	return self.IsMoving
 end
 
 --[=[
@@ -323,6 +393,23 @@ end
 
 --[=[
 	@within PathEZ
+
+	Same as [PathEZ.GetNearestPlayer], except it is a method for [PathEZPath].
+	
+	Uses Agent's position as a postion to check from.
+
+	:::info
+
+	Accepts predicate function to check on players as the third argument.
+
+	:::
+]=]
+function PathEZ.prototype:GetNearestPlayer(players: { Players }?, predicate: (Player) -> boolean): Player
+	return PathEZ.GetNearestPlayer(self.Agent.PrimaryPart.CFrame.Position, players, predicate)
+end
+
+--[=[
+	@within PathEZ
 	Destroys a PathEZPath
 
 	```lua
@@ -351,8 +438,14 @@ function PathEZ.prototype:Destroy(): ()
 		elseif Promise.is(self[i]) then
 			self[i]:cancel()
 			self[i] = nil
-		elseif self[i] == DEFFAULT_COMPUTATION_SETTINGS then
-			continue
+		elseif self[i] == self.Events then
+			local events = self[i]
+
+			for _, event in events do
+				event:Destroy()
+			end
+
+			self[i] = nil
 		else
 			self[i] = nil
 		end
