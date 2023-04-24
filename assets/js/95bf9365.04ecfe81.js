@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkdocs=self.webpackChunkdocs||[]).push([[939],{63891:s=>{s.exports=JSON.parse('{"sourceUrl":"https://github.com/UntakerAnonPLAY/PathEZ/blob/master","baseUrl":"/PathEZ/","classOrder":["PathEZ","PathEZPath"],"apiCategories":[]}')}}]);
